@@ -5,6 +5,7 @@
 - Patched all high-severity backend and frontend dependency advisories
 - Updated Starlette and python-multipart to their fixed releases
 - Updated frontend build and lint dependencies and regenerated the lockfile
+- Updated GitHub Actions to their current supported runtimes
 - Kept React Router on the client-only v6 line while the upstream v7 RSC
   advisory has no clean released upgrade path
 
