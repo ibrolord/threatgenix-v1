@@ -1,0 +1,86 @@
+app = "threatgenix-api"
+primary_region = "yyz"
+
+[build]
+  dockerfile = "Dockerfile"
+  [build.args]
+    # SaaS runs scanners from the worker process group. The API process shares
+    # the image but remains a control plane and never executes scanners in
+    # managed mode.
+    INSTALL_VALIDATION_TOOLS = "true"
+
+[processes]
+  app = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+  worker = "python worker_main.py"
+
+[deploy]
+  release_command = "sh scripts/migrate.sh"
+
+[[services]]
+  processes = ["app"]
+  internal_port = 8000
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [[services.http_checks]]
+    interval = "15s"
+    timeout = "10s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/api/health"
+
+[vm]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[env]
+  # LLM_PROVIDER controls generation. Direct Anthropic is enabled by explicit
+  # production opt-in below; Bedrock remains configured for embeddings and
+  # Canada-residency deployments that require AWS-only AI processing.
+  LLM_PROVIDER = "anthropic"
+  ANTHROPIC_MODEL_ID = "claude-sonnet-4-20250514"
+  ALLOW_EXTERNAL_AI_PROVIDERS_IN_PRODUCTION = "true"
+  AWS_DEFAULT_REGION = "ca-central-1"
+  # Other providers: set the matching API key secret (OPENAI_API_KEY, OPENROUTER_API_KEY, etc.)
+  ALLOWED_ORIGINS = "https://threatgenix.vercel.app"
+  # Supabase requires SSL on direct connections
+  DATABASE_SSL = "require"
+  # APP_ENV controls logging verbosity and debug features.
+  # Values: development | production. Always set to "production" on Fly.io.
+  APP_ENV = "production"
+  THREATGENIX_VALIDATION_RUNTIME_MODE = "managed"
+  THREATGENIX_VALIDATION_MANAGED_RUNNER_ENABLED = "true"
+  THREATGENIX_VALIDATION_ALLOWED_PATHS = "/tmp/threatgenix-validation-targets"
+  # Fly Machines already provide the Firecracker VM boundary for the dedicated
+  # private worker. Run only no-network scanners in process mode until a
+  # per-scan egress-isolated container runner exists for URL/advisory tools.
+  THREATGENIX_VALIDATION_SANDBOX_MODE = "process"
+  THREATGENIX_VALIDATION_CONTAINER_RUNTIME = "docker"
+  THREATGENIX_VALIDATION_CONTAINER_NETWORK = "threatgenix-advisory-egress"
+  THREATGENIX_VALIDATION_CONTAINER_PULL = "never"
+  THREATGENIX_VALIDATION_NUCLEI_ENABLED = "false"
+  THREATGENIX_VALIDATION_SEMGREP_ENABLED = "true"
+  THREATGENIX_VALIDATION_OSV_SCANNER_ENABLED = "false"
+  THREATGENIX_VALIDATION_TRIVY_ENABLED = "true"
+  THREATGENIX_VALIDATION_CHECKOV_ENABLED = "true"
+  THREATGENIX_VALIDATION_TRUFFLEHOG_ENABLED = "true"
+  VALIDATION_WORKER_HEARTBEAT_INTERVAL = "10"
+  VALIDATION_WORKER_LEASE_SECONDS = "90"
+  VALIDATION_WORKER_MAX_ATTEMPTS = "3"
+  VALIDATION_WORKER_HEARTBEAT_FRESH_SECONDS = "45"
+  VALIDATION_ARTIFACT_BUNDLE_MAX_BYTES = "15000000"
+  VALIDATION_ARTIFACT_BUNDLE_MAX_ITEMS = "20"
+
+# Secrets (set via: fly secrets set KEY=value)
+# DATABASE_URL       — managed PostgreSQL connection string
+# SECRET_KEY         — random 32+ char string
+# AWS_ACCESS_KEY_ID
+# AWS_SECRET_ACCESS_KEY
