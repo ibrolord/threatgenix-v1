@@ -22,7 +22,9 @@ export default tseslint.config(
           caughtErrorsIgnorePattern: "^_",
         },
       ],
-      ...reactHooks.configs.recommended.rules,
+      // Preserve the v1 lint contract while upgrading the plugin for ESLint 10.
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     },
   },

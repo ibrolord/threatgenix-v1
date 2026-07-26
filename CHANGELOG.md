@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0-preview.2 - 2026-07-26
+
+- Patched all high-severity backend and frontend dependency advisories
+- Updated Starlette and python-multipart to their fixed releases
+- Updated frontend build and lint dependencies and regenerated the lockfile
+- Kept React Router on the client-only v6 line while the upstream v7 RSC
+  advisory has no clean released upgrade path
+
 ## 1.0.0-preview.1 - 2026-07-26
 
 - Published the first complete ThreatGenix product shell as open source
